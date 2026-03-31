@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: face_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./uploads:/app/uploads
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_db
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
