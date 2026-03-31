@@ -1,7 +1,7 @@
 import redis
 import numpy as np
 from redis.commands.search.field import VectorField, TextField
-from redis.commands.search.indexDefinition import IndexDefinition, IndexType
+from redis.commands.search.index_definition import IndexDefinition, IndexType
 from redis.commands.search.query import Query
 
 

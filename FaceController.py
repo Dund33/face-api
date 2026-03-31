@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Dict
 import uuid
@@ -10,17 +10,18 @@ import cv2
 import numpy as np
 from deepface import DeepFace
 from deepface.modules.exceptions import FaceNotDetected
+from VectorStore import RedisVectorStore
 
 load_dotenv()
 
 min_face_confidence = os.getenv("MIN_FACE_CONFIDENCE")
 min_face_confidence = float(min_face_confidence) if min_face_confidence is not None else 0
+vector_store = RedisVectorStore(dim=4096)
+vector_store.create_index()
 app = FastAPI()
 
 def get_face_embedding(image_path):
     """Extract face embedding from an image"""
-    img_size  = os.path.getsize(image_path)
-    print(f'DEBUG -- IMG LEN {img_size} ----------------------------')
     try:
         embedding_objs = DeepFace.represent(image_path)
         face_confidence = embedding_objs[0]['face_confidence']
@@ -29,6 +30,7 @@ def get_face_embedding(image_path):
             raise FaceNotDetected
 
         embedding = embedding_objs[0]['embedding']
+        embedding = np.array(embedding)
         return embedding
     
     except FaceNotDetected:
@@ -74,6 +76,7 @@ def get_token(username: str, password: str):
 
 @app.post("/register")
 async def register_image(
+    id: str = Form(...),
     image: UploadFile = File(...),
     subject: str = Depends(verify_token)
 ):
@@ -82,11 +85,26 @@ async def register_image(
     file_path = f"uploads/{image_id}_{image.filename}"
     with open(file_path, "wb") as f:
         f.write(await image.read())
-    print(f'DEBUG -- FILE PATH {file_path} ----------------------------')
     embedding = get_face_embedding(file_path)
-    return {"image_id": image_id, "file_path": file_path, "embedding": embedding}
+
+    if embedding is not None:
+        vector_store.add_vector(id, embedding)
+
+    return {"id": id}
 
 
 @app.get("/identify")
-def identify(subject: str = Depends(verify_token)):
-    return {"authenticated_as": subject}
+async def identify(id: str = Form(...),
+             image: UploadFile = File(...),
+             subject: str = Depends(verify_token)):
+    image_id = str(uuid.uuid4())
+    os.makedirs("uploads", exist_ok=True)
+    file_path = f"uploads/{image_id}_{image.filename}"
+    with open(file_path, "wb") as f:
+        f.write(await image.read())
+    embedding = get_face_embedding(file_path)
+
+    if embedding is not None:
+        found = vector_store.search(embedding)
+        return {"found": found}
+    return {}

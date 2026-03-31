@@ -12,7 +12,7 @@ services:
       - ./uploads:/app/uploads
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:latest
     container_name: redis_db
     ports:
       - "6379:6379"
