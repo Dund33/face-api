@@ -20,6 +20,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 API_USER = os.getenv("API_USER")
 API_PASSWORD = os.getenv("API_PASSWORD")
+POS_ID_THRESH = os.getenv("POSITIVE_ID_THRESH")
+POS_ID_THRESH = float(POS_ID_THRESH) if POS_ID_THRESH is not None else 0
 vector_store = RedisVectorStore(dim=4096)
 vector_store.create_index()
 app = FastAPI()
@@ -104,5 +106,6 @@ async def identify(id: str = Form(...),
 
     if embedding is not None:
         found = vector_store.search(embedding)
-        return {"found": found}
+        found_filtered = list(filter(lambda x: x['score'] <= POS_ID_THRESH, found))
+        return {"found": found_filtered}
     return {}
