@@ -16,6 +16,10 @@ load_dotenv()
 
 min_face_confidence = os.getenv("MIN_FACE_CONFIDENCE")
 min_face_confidence = float(min_face_confidence) if min_face_confidence is not None else 0
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+API_USER = os.getenv("API_USER")
+API_PASSWORD = os.getenv("API_PASSWORD")
 vector_store = RedisVectorStore(dim=4096)
 vector_store.create_index()
 app = FastAPI()
@@ -36,12 +40,6 @@ def get_face_embedding(image_path):
     except FaceNotDetected:
         print('ERROR: FACE NOT DETECTED')
         return None
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
-
-API_USER = os.getenv("API_USER")
-API_PASSWORD = os.getenv("API_PASSWORD")
 
 images: Dict[str, dict] = {}
 

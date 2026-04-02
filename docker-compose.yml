@@ -9,7 +9,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./uploads:/app/uploads
+      - ./uploads:/app/uploads:Z
 
   redis:
     image: redis/redis-stack:latest
