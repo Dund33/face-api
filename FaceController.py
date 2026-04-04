@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Dict
+from typing import Dict, Annotated
 import uuid
 import jwt
 from datetime import datetime, timedelta
@@ -11,6 +11,7 @@ import numpy as np
 from deepface import DeepFace
 from deepface.modules.exceptions import FaceNotDetected
 from VectorStore import RedisVectorStore
+from User import UserModel
 
 load_dotenv()
 
@@ -72,22 +73,24 @@ def get_token(username: str, password: str):
 
 
 @app.post("/register")
-async def register_image(
-    id: str = Form(...),
+async def register_user(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
     image: UploadFile = File(...),
     subject: str = Depends(verify_token),
 ):
-    image_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
     os.makedirs("uploads", exist_ok=True)
-    file_path = f"uploads/{image_id}_{image.filename}"
+    file_path = f"uploads/{user_id}_{image.filename}"
     with open(file_path, "wb") as f:
         f.write(await image.read())
     embedding = get_face_embedding(file_path)
 
     if embedding is not None:
-        vector_store.add_vector(id, embedding)
+        user_db = UserModel(first_name, last_name, embedding)
+        vector_store.add_user(user_id, user_db)
 
-    return {"id": id}
+    return {"id": user_id}
 
 
 @app.get("/identify")
