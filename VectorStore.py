@@ -5,14 +5,9 @@ from redis.commands.search.index_definition import IndexDefinition, IndexType
 from redis.commands.search.query import Query
 from User import UserModel
 
+
 class RedisVectorStore:
-    def __init__(
-        self,
-        host="redis",
-        port=6379,
-        index_name="vector_index",
-        dim=128
-    ):
+    def __init__(self, host="redis", port=6379, index_name="vector_index", dim=128):
         self.client = redis.Redis(host=host, port=port, decode_responses=False)
         self.index_name = index_name
         self.dim = dim
@@ -30,11 +25,11 @@ class RedisVectorStore:
                         {
                             "TYPE": "FLOAT32",
                             "DIM": self.dim,
-                            "DISTANCE_METRIC": "COSINE"
-                        }
-                    )
+                            "DISTANCE_METRIC": "COSINE",
+                        },
+                    ),
                 ],
-                definition=IndexDefinition(prefix=["vec:"], index_type=IndexType.HASH)
+                definition=IndexDefinition(prefix=["vec:"], index_type=IndexType.HASH),
             )
         except Exception:
             pass
@@ -47,18 +42,19 @@ class RedisVectorStore:
                 "id": user_id,
                 "firstName": user.first_name,
                 "lastName": user.last_name,
-                "vector": user.embedding.astype(np.float32).tobytes()
-            }
+                "vector": user.embedding.astype(np.float32).tobytes(),
+            },
         )
 
     def search(self, query_vector: np.ndarray, k=5):
-        q = Query(
-            f"*=>[KNN {k} @vector $vec AS score]"
-        ).sort_by("score").return_fields("id", "score", "firstName", "lastName").dialect(2)
+        q = (
+            Query(f"*=>[KNN {k} @vector $vec AS score]")
+            .sort_by("score")
+            .return_fields("id", "score", "firstName", "lastName")
+            .dialect(2)
+        )
 
-        params = {
-            "vec": query_vector.astype(np.float32).tobytes()
-        }
+        params = {"vec": query_vector.astype(np.float32).tobytes()}
 
         results = self.client.ft(self.index_name).search(q, query_params=params)
 
@@ -67,7 +63,7 @@ class RedisVectorStore:
                 "id": doc.id,
                 "first_name": doc.firstName,
                 "last_name": doc.lastName,
-                "score": float(doc.score)
+                "score": float(doc.score),
             }
             for doc in results.docs
         ]
