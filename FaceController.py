@@ -14,16 +14,16 @@ from User import UserModel
 from mathops import medoid
 from SettingsStore import config_store, init_config_store
 
-
 init_config_store()
 vector_store = RedisVectorStore(dim=4096)
 vector_store.create_index()
 app = FastAPI()
 security = HTTPBearer()
 
+
 def get_face_embedding(image_path: str, config: dict):
     """Extract face embedding from an image"""
-    min_face_confidence = config['min_face_confidence']
+    min_face_confidence = config["min_face_confidence"]
     try:
         embedding_objs = DeepFace.represent(image_path)
         face_confidence = embedding_objs[0]["face_confidence"]
@@ -41,16 +41,21 @@ def get_face_embedding(image_path: str, config: dict):
 
 
 def create_token(subject: str, config: dict):
-    secret_key = config['secret_key']
-    algorithm = config['algorithm']
+    secret_key = config["secret_key"]
+    algorithm = config["algorithm"]
     payload = {"sub": subject, "exp": datetime.utcnow() + timedelta(hours=24)}
     return jwt.encode(payload, secret_key, algorithm=algorithm)
 
 
-def verify_token(config: Annotated[dict, Depends(config_store)], credentials: HTTPAuthorizationCredentials = Depends(security)):
+def verify_token(
+    config: Annotated[dict, Depends(config_store)],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     token = credentials.credentials
     try:
-        payload = jwt.decode(token, config['secret_key'], algorithms=[config['algorithm']])
+        payload = jwt.decode(
+            token, config["secret_key"], algorithms=[config["algorithm"]]
+        )
         return payload["sub"]
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
@@ -59,9 +64,11 @@ def verify_token(config: Annotated[dict, Depends(config_store)], credentials: HT
 
 
 @app.post("/get_token")
-def get_token(username: str, password: str, config: Annotated[dict, Depends(config_store)]):
-    api_username = config['api_username']
-    api_password = config['api_password']
+def get_token(
+    username: str, password: str, config: Annotated[dict, Depends(config_store)]
+):
+    api_username = config["api_username"]
+    api_password = config["api_password"]
     if username == api_username and password == api_password:
         return {"access_token": create_token(username, config)}
     raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -73,9 +80,9 @@ async def register_user(
     config: Annotated[dict, Depends(config_store)],
     first_name: str = Form(...),
     last_name: str = Form(...),
-    subject: str = Depends(verify_token)
+    subject: str = Depends(verify_token),
 ):
-    min_face_confidence = config['min_face_confidence']
+    min_face_confidence = config["min_face_confidence"]
     user_id = str(uuid.uuid4())
     os.makedirs("uploads", exist_ok=True)
 
@@ -98,7 +105,11 @@ async def register_user(
 
 
 @app.post("/identify")
-async def identify(config: Annotated[dict, Depends(config_store)], image: UploadFile = File(...), subject: str = Depends(verify_token)):
+async def identify(
+    config: Annotated[dict, Depends(config_store)],
+    image: UploadFile = File(...),
+    subject: str = Depends(verify_token),
+):
     image_id = str(uuid.uuid4())
     os.makedirs("uploads", exist_ok=True)
     file_path = f"uploads/{image_id}_{image.filename}"
@@ -106,7 +117,7 @@ async def identify(config: Annotated[dict, Depends(config_store)], image: Upload
         f.write(await image.read())
 
     embedding = get_face_embedding(file_path, config)
-    pos_id_thresh = config['pos_id_thresh']
+    pos_id_thresh = config["pos_id_thresh"]
 
     if embedding is not None:
         found = vector_store.search(embedding)
