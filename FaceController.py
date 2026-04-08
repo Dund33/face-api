@@ -124,3 +124,27 @@ async def identify(
         found_filtered = list(filter(lambda x: x["score"] <= pos_id_thresh, found))
         return {"found": found_filtered}
     return {"found": []}
+
+
+@app.post("/login")
+async def login(
+    config: Annotated[dict, Depends(config_store)],
+    image: UploadFile = File(...),
+    user_id: str = Form(...),
+    subject: str = Depends(verify_token),
+):
+    image_id = str(uuid.uuid4())
+    os.makedirs("uploads", exist_ok=True)
+    file_path = f"uploads/{image_id}_{image.filename}"
+    with open(file_path, "wb") as f:
+        f.write(await image.read())
+
+    embedding = get_face_embedding(file_path, config)
+    pos_id_thresh = config["pos_id_thresh"]
+
+    if embedding is not None:
+        score = vector_store.similarity_by_id(user_id, embedding)
+        if score is None:
+            return {"error": "user not found"}
+        return {"success": score <= pos_id_thresh}
+    return {"error": "embedding error"}

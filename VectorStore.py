@@ -67,3 +67,17 @@ class RedisVectorStore:
             }
             for doc in results.docs
         ]
+    
+    def similarity_by_id(self, user_id: str, query_vector: np.ndarray):
+        q = Query(
+            f'@id:"{user_id}"=>[KNN 1 @vector $vec AS score]'
+            ).sort_by("score").return_fields("score").dialect(2)
+        
+        params = {"vec": query_vector.astype(np.float32).tobytes()}
+        
+        result = self.client.ft(self.index_name).search(q, query_params=params)
+
+        if result.total == 0:
+            return None
+        
+        return float(result.docs[0].score)
