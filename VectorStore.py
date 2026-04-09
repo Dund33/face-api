@@ -12,6 +12,19 @@ class RedisVectorStore:
         self.index_name = index_name
         self.dim = dim
 
+    def clear_all_documents(self):
+        try:
+            # Get all keys matching prefix
+            keys = self.client.keys("vec:*")
+
+            if keys:
+                self.client.delete(*keys)
+                print(f"Deleted {len(keys)} documents.")
+            else:
+                print("No documents found.")
+        except Exception as e:
+            print(f"Error deleting documents: {e}")
+
     def create_index(self):
         try:
             self.client.ft(self.index_name).create_index(

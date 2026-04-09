@@ -82,7 +82,6 @@ async def register_user(
     last_name: str = Form(...),
     subject: str = Depends(verify_token),
 ):
-    min_face_confidence = config["min_face_confidence"]
     user_id = str(uuid.uuid4())
     os.makedirs("uploads", exist_ok=True)
 
@@ -95,6 +94,10 @@ async def register_user(
 
     embeddings = [get_face_embedding(file_path, config) for file_path in file_paths]
     embeddings = list(filter(lambda x: x is not None, embeddings))
+
+    if not embeddings:
+        return {'id': None}
+
     medoid_embedding = medoid(embeddings)
 
     if medoid_embedding is not None:
@@ -146,5 +149,13 @@ async def login(
         score = vector_store.similarity_by_id(user_id, embedding)
         if score is None:
             return {"error": "user not found"}
-        return {"success": score <= pos_id_thresh}
+        return {"success": score <= pos_id_thresh, 'score': score}
     return {"error": "embedding error"}
+
+@app.get("/clear")
+async def clear(
+    subject: str = Depends(verify_token),
+):
+    vector_store.clear_all_documents()
+
+    return {'status': 'ok'}
