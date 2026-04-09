@@ -12,7 +12,17 @@ load_dotenv()
 REGISTER_URL = "http://localhost:8000/register"
 LOGIN_URL = "http://localhost:8000/login"
 IDENTIFY_URL = "http://localhost:8000/identify"
+CLEAR_API_URL = "http://localhost:8000/clear"
 TOKEN = os.getenv("TOKEN")
+
+async def clear_data():
+    headers = {
+        "Authorization": f"Bearer {TOKEN}"
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(CLEAR_API_URL, headers=headers)
+        return response
 
 async def register_user(images, first_name, last_name):
     headers = {"Authorization": f"Bearer {TOKEN}"}
