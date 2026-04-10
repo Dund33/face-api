@@ -35,7 +35,7 @@ async def register(dataset):
         first_name = fake.unique.first_name()
         last_name = fake.unique.last_name()
 
-        register_imgs = images[3:]
+        register_imgs = images[3:8]
         login_imgs = images[:3]
 
         user = User(first_name, last_name, "", register_imgs, login_imgs)
