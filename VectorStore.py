@@ -1,8 +1,9 @@
-import redis
 import numpy as np
-from redis.commands.search.field import VectorField, TextField
+import redis
+from redis.commands.search.field import TextField, VectorField
 from redis.commands.search.index_definition import IndexDefinition, IndexType
 from redis.commands.search.query import Query
+
 from User import UserModel
 
 
@@ -11,6 +12,19 @@ class RedisVectorStore:
         self.client = redis.Redis(host=host, port=port, decode_responses=False)
         self.index_name = index_name
         self.dim = dim
+
+    def clear_all_documents(self):
+        try:
+            # Get all keys matching prefix
+            keys = self.client.keys("vec:*")
+
+            if keys:
+                self.client.delete(*keys)
+                print(f"Deleted {len(keys)} documents.")
+            else:
+                print("No documents found.")
+        except Exception as e:
+            print(f"Error deleting documents: {e}")
 
     def create_index(self):
         try:
@@ -67,17 +81,20 @@ class RedisVectorStore:
             }
             for doc in results.docs
         ]
-    
+
     def similarity_by_id(self, user_id: str, query_vector: np.ndarray):
-        q = Query(
-            f'@id:"{user_id}"=>[KNN 1 @vector $vec AS score]'
-            ).sort_by("score").return_fields("score").dialect(2)
-        
+        q = (
+            Query(f'@id:"{user_id}"=>[KNN 1 @vector $vec AS score]')
+            .sort_by("score")
+            .return_fields("score")
+            .dialect(2)
+        )
+
         params = {"vec": query_vector.astype(np.float32).tobytes()}
-        
+
         result = self.client.ft(self.index_name).search(q, query_params=params)
 
         if result.total == 0:
             return None
-        
+
         return float(result.docs[0].score)

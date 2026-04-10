@@ -1,6 +1,6 @@
-import numpy as np
-from pydantic import BaseModel
 from dataclasses import dataclass
+
+import numpy as np
 
 
 @dataclass
