@@ -2,6 +2,7 @@ import asyncio
 import httpx
 import os
 import tqdm
+import io
 import itertools as it
 from faker import Faker
 from pathlib import Path
@@ -47,6 +48,22 @@ async def login_user(image_path, user_id):
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(LOGIN_URL, headers=headers, files=files, data=data)
+
+    return response
+
+async def login_user_image(image, user_id, name):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
+    data = {"user_id": user_id}
+
+    file_obj = io.BytesIO(image)
+
+    files = {"image": (name, file_obj, "image/png")}
+
+    timeout = httpx.Timeout(120.0)
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(LOGIN_URL, headers=headers, files=files, data=data)
 
     return response
 
