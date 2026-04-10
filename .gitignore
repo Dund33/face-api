@@ -3,3 +3,5 @@ uploads
 /data
 tools/.env
 .venv
+__pycache__/
+*.py[cod]
