@@ -2,3 +2,4 @@
 uploads
 /data
 tools/.env
+.venv

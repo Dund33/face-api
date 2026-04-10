@@ -1,18 +1,16 @@
 import asyncio
-from dataclasses import dataclass
-from random import choice
-import httpx
-import os
-import tqdm
 import itertools as it
-from faker import Faker
-from pathlib import Path
-from dotenv import load_dotenv
-from PersonsDataset import PersonDataset
-from helptools import register_user, login_user, clear_data
 import time
+from dataclasses import dataclass
+
+import tqdm
+from faker import Faker
+
+from helptools import clear_data, login_user, register_user
+from PersonsDataset import PersonDataset
 
 N_REPEAT = 10
+
 
 @dataclass
 class User:
@@ -21,6 +19,7 @@ class User:
     id: str
     register_imgs: list
     login_imgs: list
+
 
 async def populate():
     dataset = PersonDataset("../data/vggface2/train")
@@ -36,10 +35,11 @@ async def populate():
             images=imgs, first_name=first_name, last_name=last_name
         )
 
-        user_id = response.json()['id']
+        user_id = response.json()["id"]
         ids.append(user_id)
 
     return ids
+
 
 async def time_register():
     await clear_data()
@@ -47,13 +47,13 @@ async def time_register():
     imgs, id = dataset[0]
     imgs = imgs[3:]
 
-
     start = time.perf_counter()
     for _ in range(N_REPEAT):
-        await register_user(imgs, 'John', "Doe")
+        await register_user(imgs, "John", "Doe")
     end = time.perf_counter()
 
     return (end - start) / N_REPEAT
+
 
 async def time_login(user_ids):
     dataset = PersonDataset("../data/vggface2/train")
@@ -72,13 +72,13 @@ async def main():
     register_time = await time_register()
     user_ids = await populate()
     login_time = await time_login(user_ids)
-    print(f'Register time {register_time}')
-    print(f'Login time {login_time}')
+    print(f"Register time {register_time}")
+    print(f"Login time {login_time}")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 
 
-#Register time 0.5803541900000709
-#Login time 0.471075109999947
+# Register time 0.5803541900000709
+# Login time 0.471075109999947

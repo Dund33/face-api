@@ -1,8 +1,5 @@
-import os
-from pathlib import Path
-from PIL import Image
-import numpy as np
 import itertools as it
+from pathlib import Path
 
 
 class PersonDataset:
