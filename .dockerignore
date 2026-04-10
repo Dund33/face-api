@@ -2,3 +2,9 @@ data/
 tools/
 .dvc/
 .venv/
+.gitignore
+.dvcignore
+*.odt
+docker-compose.yml
+Dockerfile
+data.dvc
