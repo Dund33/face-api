@@ -1,22 +1,23 @@
 import asyncio
+import itertools as it
+import os
 from dataclasses import dataclass
 from random import choice
-import httpx
-import os
-import tqdm
-import itertools as it
-from faker import Faker
-from pathlib import Path
-from dotenv import load_dotenv
-from PersonsDataset import PersonDataset
-from helptools import register_user, login_user, clear_data
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+import tqdm
+from dotenv import load_dotenv
+from faker import Faker
+
+from helptools import clear_data, login_user, register_user
+from PersonsDataset import PersonDataset
 
 load_dotenv()
 REGISTER_API_URL = "http://localhost:8000/register"
 LOGIN_API_URL = "http://localhost:8000/login"
 TOKEN = os.getenv("TOKEN")
+
 
 @dataclass
 class User:
@@ -25,6 +26,7 @@ class User:
     id: str
     register_imgs: list
     login_imgs: list
+
 
 async def register(dataset):
     fake = Faker()
@@ -36,17 +38,18 @@ async def register(dataset):
         register_imgs = images[3:]
         login_imgs = images[:3]
 
-        user = User(first_name, last_name, '', register_imgs, login_imgs)
+        user = User(first_name, last_name, "", register_imgs, login_imgs)
 
         response = await register_user(
             images=register_imgs, first_name=first_name, last_name=last_name
         )
 
-        user_id = response.json()['id']
+        user_id = response.json()["id"]
         user.id = user_id
-        
+
         users.append(user)
     return users
+
 
 async def test_correct_auth(users):
     results = []
@@ -56,6 +59,7 @@ async def test_correct_auth(users):
         results.append(result.json())
 
     return results
+
 
 async def test_incorrect_auth(users):
     results = []
@@ -70,19 +74,22 @@ async def test_incorrect_auth(users):
 
     return results
 
+
 def get_frr(auths, threshold):
     FR = 0
     for auth in auths:
-        if auth['score'] > threshold:
+        if auth["score"] > threshold:
             FR += 1
-    return FR/len(auths)
+    return FR / len(auths)
+
 
 def get_far(auths, threshold):
     FA = 0
     for auth in auths:
-        if auth['score'] <= threshold:
+        if auth["score"] <= threshold:
             FA += 1
-    return FA/len(auths)
+    return FA / len(auths)
+
 
 async def main():
     await clear_data()
@@ -104,18 +111,20 @@ async def main():
 
     far_values = [far[t] for t in sorted_thresh]
     frr_values = [frr[t] for t in sorted_thresh]
+    tpr_values = [1 - frr[t] for t in sorted_thresh]
 
     plt.figure()
-    plt.plot(far_values, frr_values, marker='o')
+    plt.plot(far_values, tpr_values, marker="o")
     plt.xlabel("False Acceptance Rate (FAR)")
-    plt.ylabel("False Rejection Rate (FRR)")
+    plt.ylabel("True Positive Rate (TPR)")
     plt.title("ROC Curve")
 
     for i, t in enumerate(sorted_thresh):
-        plt.annotate(f"{t:.1f}", (frr_values[i], far_values[i]))
+        plt.annotate(f"{t:.1f}", (far_values[i], tpr_values[i]))
 
     plt.savefig("roc_curve.png")
     plt.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
